@@ -3,65 +3,87 @@ import React from "react";
 const SensorDetail = ({ sensor, onClose }) => {
   if (!sensor) return null;
 
-  const colorMap = {
-    critical: { bg: "bg-red-100", text: "text-red-700", icon: "⚠️" },
-    warning: { bg: "bg-yellow-100", text: "text-yellow-700", icon: "🟡" },
-    normal: { bg: "bg-green-100", text: "text-green-700", icon: "✅" },
-  };
-
-  const color = colorMap[sensor.status] || colorMap.normal;
+  const { name, region, value, lastUpdate, machine } = sensor;
+  const { type, inactivityHours, components } = machine || {};
 
   return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 fade-in z-[9999]"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-3xl p-8 shadow-2xl max-w-lg w-full relative slide-up z-[10000]"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-white rounded-2xl shadow-xl p-6 w-[90%] max-w-lg relative">
+        {/* Botón cerrar */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-2xl text-gray-600 hover:text-gray-800"
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl font-bold leading-none"
+          title="Cerrar"
         >
           ✕
         </button>
 
-        <div className="flex items-center gap-3 mb-6">
-          <div className={`p-3 rounded-full ${color.bg} text-2xl`}>
-            {color.icon}
-          </div>
-          <div>
-            <h3 className="text-3xl font-bold text-gray-900">{sensor.name}</h3>
-            <p className={`text-lg font-semibold ${color.text}`}>
-              Estado: {sensor.status.toUpperCase()}
-            </p>
-          </div>
+        {/* Encabezado */}
+        <h2 className="text-2xl font-bold mb-2">{name}</h2>
+        <p className="text-gray-600 mb-4">{region}</p>
+        <p className="text-gray-500 text-sm mb-4">
+          Última actualización: {new Date(lastUpdate).toLocaleString()}
+        </p>
+
+        {/* Información de máquina */}
+        <div className="border-t pt-3 mb-4">
+          <h3 className="text-lg font-semibold mb-2">Tipo de máquina:</h3>
+          <p className="text-gray-700 mb-1">{type || "No especificado"}</p>
+          <p className="text-gray-600">
+            Horas de inactividad:{" "}
+            <strong>{inactivityHours ?? "0"}</strong> h
+          </p>
         </div>
 
-        <div className="space-y-3 text-gray-700">
-          <p>
-            <strong>📍 Región:</strong> {sensor.region}
-          </p>
-          <p>
-            <strong>📈 Nivel:</strong> {sensor.value}%
-          </p>
-          <p>
-            <strong>⏰ Última actualización:</strong>{" "}
-            {new Date(sensor.lastUpdate).toLocaleString("es-CL")}
-          </p>
+        {/* Componentes */}
+        {components ? (
+          <>
+            <h3 className="text-lg font-semibold mb-2">Componentes</h3>
+            <div className="grid grid-cols-1 gap-3">
+              {Object.entries(components).map(([key, comp]) => {
+                const percent = Math.min(
+                  (comp.hoursUsed / comp.maxHours) * 100,
+                  100
+                );
+                const formattedKey = key
+                  .replace(/([A-Z])/g, " $1")
+                  .replace(/^./, (str) => str.toUpperCase());
 
-          {sensor.status === "critical" && (
-            <div className="bg-red-50 border border-red-300 text-red-800 p-4 rounded-xl">
-              ⚠️ Requiere mantenimiento inmediato.
+                return (
+                  <div
+                    key={key}
+                    className="border rounded-xl p-3 bg-gray-50 shadow-sm"
+                  >
+                    <h4 className="font-semibold">{formattedKey}</h4>
+                    <p className="text-sm text-gray-600">
+                      Horas usadas: {comp.hoursUsed} / {comp.maxHours}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Último cambio: {comp.lastChange}
+                    </p>
+                    {/* Barra de progreso */}
+                    <div className="w-full bg-gray-200 h-2 rounded mt-2">
+                      <div
+                        className={`h-2 rounded ${
+                          percent > 90
+                            ? "bg-red-500"
+                            : percent > 70
+                            ? "bg-yellow-500"
+                            : "bg-green-500"
+                        }`}
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          )}
-          {sensor.status === "warning" && (
-            <div className="bg-yellow-50 border border-yellow-300 text-yellow-800 p-4 rounded-xl">
-              ⚠️ Nivel bajo. Revisar pronto.
-            </div>
-          )}
-        </div>
+          </>
+        ) : (
+          <p className="text-gray-500 italic">
+            No hay datos de componentes para esta máquina.
+          </p>
+        )}
       </div>
     </div>
   );
